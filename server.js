@@ -6,7 +6,12 @@ const cors = require("cors");
 require("dotenv").config();
 
 // router
-const searchRouter = require("./routes/api/search");
+const searchRouter = require("./api/routes/search");
+const userRouter = require("./api/routes/user");
+const protectedRouter = require("./api/routes/protect");
+
+// middlewares
+const authMiddleware = require("./middlewares/authMiddleware");
 
 const app = express();
 
@@ -18,6 +23,8 @@ app.use(cors());
 app.use(logger("dev"));
 
 app.use("/api/search", searchRouter);
+app.use("/api/user", userRouter);
+app.use("/api/protect", authMiddleware.requireAuth, protectedRouter);
 
 // if the request passes all the middleware without a response
 app.use((req, res, next) => {
