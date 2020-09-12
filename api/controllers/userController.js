@@ -12,7 +12,6 @@ const secretToken = process.env.SECRET_TOKEN;
 const query = util.promisify(db.query).bind(db);
 
 exports.signUp = async (req, res) => {
-  console.log(req.body);
   const { username, password } = req.body;
 
   if (!(username && password)) {
@@ -24,7 +23,6 @@ exports.signUp = async (req, res) => {
       "SELECT * FROM user WHERE BINARY username = ?",
       [username]
     );
-    console.log({ selectedUser });
     if (selectedUser.length > 0)
       return res.status(400).send("User already exists");
 
@@ -39,14 +37,11 @@ exports.signUp = async (req, res) => {
       });
 
       const data = await query("INSERT INTO user SET ?", newUser);
-      console.log(data);
 
       const token = jwt.sign({ userId: data.insertId }, secretToken);
-      console.log(token);
       if (data)
         return res.status(200).json({
           username,
-          // userId: data.insertId,
           token,
         });
     });
@@ -61,7 +56,6 @@ exports.login = async (req, res) => {
     "SELECT * FROM user WHERE BINARY username = ?",
     [username]
   );
-  console.log(selectedUser);
 
   if (!(username && password)) {
     return res.status(400).send("Please enter full fields.");
@@ -74,12 +68,10 @@ exports.login = async (req, res) => {
     if (result) {
       try {
         const token = jwt.sign({ userId: selectedUser[0].id }, secretToken);
-        console.log("id:", selectedUser[0].id);
 
         res.status(200).json({
           username: selectedUser[0].username,
           token,
-          // userId: selectedUser[0].id,
         });
       } catch (error) {
         console.log(error);

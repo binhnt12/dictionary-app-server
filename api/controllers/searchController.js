@@ -50,7 +50,6 @@ exports.search = (req, res) => {
 };
 
 exports.searchMultiple = (req, res) => {
-  console.log(req.query);
   if (!req.query.word) {
     return res.status(200).json({ data: { words: [] } });
   }
