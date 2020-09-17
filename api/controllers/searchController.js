@@ -17,25 +17,7 @@ exports.search = (req, res) => {
         .status(200)
         .json({ data: { notFound: true, message: "Not found word!" } });
     }
-
-    const removedTags = results[0].detail.slice(
-      results[0].detail.indexOf("@"),
-      results[0].detail.indexOf("</Q>")
-    );
-    const text = removedTags
-      .replace(/<br \/>/g, "\n")
-      .replace(/\+/g, ":")
-      .replace(/&amp;/g, "&");
-    const splitOne = text.split(/(?=\*)/);
-    let splitTwo = [];
-    splitTwo[0] =
-      splitOne[0].slice(
-        splitOne[0].indexOf("/"),
-        splitOne[0].indexOf("/", splitOne[0].indexOf("/") + 1)
-      ) + "/";
-    for (let i = 1; i < splitOne.length; i++) {
-      splitTwo[i] = splitOne[i].replace(/\n!/, "<br !/>!").split("<br !/>");
-    }
+    console.log("hehe", results[0].detail);
 
     res.status(200).json({
       data: {
@@ -43,7 +25,7 @@ exports.search = (req, res) => {
         message: "Success",
         idx: results[0].idx,
         word: results[0].word,
-        detail: { splitTwo },
+        detail: results[0].detail,
       },
     });
   });

@@ -10,17 +10,18 @@ exports.index = (req, res) => {
 
 exports.addWord = async (req, res) => {
   const { userId } = req.user;
+  const { type } = req.query;
   try {
     await query(
       `UPDATE user 
-      SET list_word = IF(
-        list_word IS NULL OR
-        JSON_TYPE(list_word) != 'ARRAY',
+      SET ${type} = IF(
+        ${type} IS NULL OR
+        JSON_TYPE(${type}) != 'ARRAY',
         JSON_ARRAY(),
-        list_word
+        ${type}
       ),
-      list_word = JSON_ARRAY_APPEND(
-        list_word,
+      ${type} = JSON_ARRAY_APPEND(
+        ${type},
         '$',
         CAST(? AS JSON)
       )
@@ -35,17 +36,21 @@ exports.addWord = async (req, res) => {
 
 exports.removeFromListWord = async (req, res) => {
   const { userId } = req.user;
-  const { word } = req.query;
+  const { type, idx } = req.query;
+  console.log(idx);
   try {
-    const data = await query("SELECT list_word FROM user WHERE id = ?", [
-      userId,
-    ]);
+    const data = await query(`SELECT ${type} FROM user WHERE id = ?`, [userId]);
 
-    const listWord = JSON.parse(data[0].list_word);
-    const index = listWord.findIndex((e) => e.word === word);
-
+    const listWord =
+      type === "unknown"
+        ? JSON.parse(data[0].unknown)
+        : JSON.parse(data[0].known);
+    console.log(listWord);
+    const index = listWord.findIndex(
+      (e) => e.idx.toString() === idx.toString()
+    );
     await query(
-      `UPDATE user SET list_word = JSON_REMOVE(list_word, '$[?]') WHERE id = ?`,
+      `UPDATE user SET ${type} = JSON_REMOVE(${type}, '$[?]') WHERE id = ?`,
       [index, userId]
     );
 
@@ -57,13 +62,18 @@ exports.removeFromListWord = async (req, res) => {
 };
 
 exports.getListWord = async (req, res) => {
-  console.log(111);
   const { userId } = req.user;
   console.log(userId);
   try {
-    data = await query("SELECT list_word FROM user WHERE id = ?", [userId]);
-    console.log(data);
-    return res.status(200).json({ listWord: JSON.parse(data[0].list_word) });
+    dataUnknown = await query("SELECT unknown FROM user WHERE id = ?", [
+      userId,
+    ]);
+    dataKnown = await query("SELECT known FROM user WHERE id = ?", [userId]);
+    console.log(dataUnknown);
+    return res.status(200).json({
+      unknown: JSON.parse(dataUnknown[0].unknown),
+      known: JSON.parse(dataKnown[0].known),
+    });
   } catch (err) {
     return res.status(400).send("Error when get list word");
   }
