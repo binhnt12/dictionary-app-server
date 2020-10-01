@@ -22,7 +22,7 @@ app.use(cors());
 
 app.use(logger("dev"));
 
-app.get("/", (req, res) => res.send("Welcome!"));
+app.get("/", (req, res) => res.send("Welcome! binhnt"));
 
 app.use("/api/search", searchRouter);
 app.use("/api/user", userRouter);
