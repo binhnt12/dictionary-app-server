@@ -37,7 +37,7 @@ exports.searchMultiple = (req, res) => {
   }
   word = req.query.word.replace(/ /g, "-");
   db.query(
-    "SELECT * FROM tbl_edict WHERE word LIKE ? LIMIT 5",
+    "SELECT * FROM tbl_edict WHERE word LIKE ? LIMIT 10",
     [word] + "%",
     (err, results) => {
       if (err) {

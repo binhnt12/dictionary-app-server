@@ -14,9 +14,8 @@ module.exports.requireAuth = async (req, res, next) => {
     token = req.headers.authorization.split(" ")[1];
     try {
       // TODO
-      // const decoded = await utils.verifyJwtToken(token, secretKey);
-      // req.user = decoded;
-      req.user = { userId: 13 };
+      const decoded = await utils.verifyJwtToken(token, secretKey);
+      req.user = decoded;
       next();
     } catch (err) {
       // Nếu token tồn tại nhưng không hợp lệ, server sẽ response status code 401 với msg bên dưới
