@@ -22,6 +22,8 @@ app.use(cors());
 
 app.use(logger("dev"));
 
+app.get("/", (req, res) => res.send("Welcome!"));
+
 app.use("/api/search", searchRouter);
 app.use("/api/user", userRouter);
 app.use("/api/protect", authMiddleware.requireAuth, protectedRouter);
