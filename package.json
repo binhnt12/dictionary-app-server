@@ -11,12 +11,14 @@
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.10.0",
-    "mysql": "^2.18.1"
+    "mysql": "^2.18.1",
+    "pg": "^8.3.3"
   },
   "devDependencies": {},
   "scripts": {
     "start": "node server.js",
     "start-dev": "nodemon server.js",
+    "start-prod": "nodemon -r dotenv/config server.js dotenv_config_path=prod.env",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {

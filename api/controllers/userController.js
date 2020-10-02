@@ -3,13 +3,13 @@ require("dotenv").config();
 const util = require("util");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const db = require("../../db");
+const client = require("../../db");
 const User = require("../../modals/user");
 
 const saltRounds = parseInt(process.env.SALT_ROUNDS_BCRYPT) || 10;
 const secretToken = process.env.SECRET_TOKEN;
 
-const query = util.promisify(db.query).bind(db);
+// const query = db.query;
 
 exports.signUp = async (req, res) => {
   const { username, password } = req.body;
@@ -19,26 +19,32 @@ exports.signUp = async (req, res) => {
   }
 
   try {
-    const selectedUser = await query(
-      "SELECT * FROM user WHERE BINARY username = ?",
+    const selectedUser = await client.query(
+      `SELECT * FROM "user" WHERE username = $1`,
       [username]
     );
-    if (selectedUser.length > 0)
+    if (selectedUser.rows.length > 0)
       return res.status(400).send("User already exists");
 
     bcrypt.hash(password, saltRounds, async (err, hash) => {
       if (err) {
         res.status(400).send("Error when hash password");
       }
+      // TODO: modal
+      // const newUser = new User({
+      //   username,
+      //   password: hash,
+      // });
 
-      const newUser = new User({
-        username,
-        password: hash,
-      });
+      const data = await client.query(
+        `INSERT INTO "user" (username, password)
+        VALUES ($1, $2)
+        RETURNING id`,
+        [username, hash]
+      );
+      console.log("hehehehe", data);
 
-      const data = await query("INSERT INTO user SET ?", newUser);
-
-      const token = jwt.sign({ userId: data.insertId }, secretToken);
+      const token = jwt.sign({ userId: data.rows[0].id }, secretToken);
       if (data)
         return res.status(200).json({
           username,
@@ -52,25 +58,28 @@ exports.signUp = async (req, res) => {
 
 exports.login = async (req, res) => {
   const { username, password } = req.body;
-  const selectedUser = await query(
-    "SELECT * FROM user WHERE BINARY username = ?",
+  const selectedUser = await client.query(
+    `SELECT * FROM "user" WHERE username = $1`,
     [username]
   );
 
   if (!(username && password)) {
     return res.status(400).send("Please enter full fields.");
   }
-  if (selectedUser.length === 0) {
+  if (selectedUser.rows.length === 0) {
     return res.status(401).send("Invalid email or password.");
   }
 
-  bcrypt.compare(password, selectedUser[0].password, (err, result) => {
+  bcrypt.compare(password, selectedUser.rows[0].password, (err, result) => {
     if (result) {
       try {
-        const token = jwt.sign({ userId: selectedUser[0].id }, secretToken);
+        const token = jwt.sign(
+          { userId: selectedUser.rows[0].id },
+          secretToken
+        );
 
         res.status(200).json({
-          username: selectedUser[0].username,
+          username: selectedUser.rows[0].username,
           token,
         });
       } catch (error) {
