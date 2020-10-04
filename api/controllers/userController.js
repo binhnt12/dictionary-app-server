@@ -1,21 +1,20 @@
 require("dotenv").config();
 
-const util = require("util");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const client = require("../../db");
-const User = require("../../modals/user");
 
 const saltRounds = parseInt(process.env.SALT_ROUNDS_BCRYPT) || 10;
 const secretToken = process.env.SECRET_TOKEN;
 
-// const query = db.query;
-
 exports.signUp = async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, rePassword } = req.body;
 
-  if (!(username && password)) {
-    return res.status(400).send("Please enter full fields.");
+  if (!(username && password && rePassword)) {
+    return res.status(400).send("Điền đầy đủ thông tin.");
+  }
+  if (password !== rePassword) {
+    return res.status(400).send("Không khớp mật khẩu.");
   }
 
   try {
@@ -24,25 +23,21 @@ exports.signUp = async (req, res) => {
       [username]
     );
     if (selectedUser.rows.length > 0)
-      return res.status(400).send("User already exists");
+      return res.status(400).send("User đã tồn tại");
 
     bcrypt.hash(password, saltRounds, async (err, hash) => {
       if (err) {
         res.status(400).send("Error when hash password");
       }
-      // TODO: modal
-      // const newUser = new User({
-      //   username,
-      //   password: hash,
-      // });
 
       const data = await client.query(
-        `INSERT INTO "user" (username, password)
+        `
+        INSERT INTO "user" (username, password)
         VALUES ($1, $2)
-        RETURNING id`,
+        RETURNING id
+      `,
         [username, hash]
       );
-      console.log("hehehehe", data);
 
       const token = jwt.sign({ userId: data.rows[0].id }, secretToken);
       if (data)
@@ -52,7 +47,7 @@ exports.signUp = async (req, res) => {
         });
     });
   } catch (err) {
-    return res.status(400).send("Error when create user");
+    return res.status(400).send("Lỗi khi tạo user.");
   }
 };
 
@@ -64,10 +59,10 @@ exports.login = async (req, res) => {
   );
 
   if (!(username && password)) {
-    return res.status(400).send("Please enter full fields.");
+    return res.status(400).send("Điền đầy đủ thông tin.");
   }
   if (selectedUser.rows.length === 0) {
-    return res.status(401).send("Invalid email or password.");
+    return res.status(401).send("Sai tên tài khoản hoặc mật khẩu.");
   }
 
   bcrypt.compare(password, selectedUser.rows[0].password, (err, result) => {
@@ -88,7 +83,7 @@ exports.login = async (req, res) => {
       }
     } else {
       console.log(err);
-      return res.status(401).send("Invalid email or password.");
+      return res.status(401).send("Sai tên tài khoản hoặc mật khẩu.");
     }
   });
 };

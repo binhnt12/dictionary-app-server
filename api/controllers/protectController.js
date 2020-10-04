@@ -1,8 +1,5 @@
 const util = require("util");
-// const utils = require("../utils");
-const db = require("../../db");
-
-const query = util.promisify(db.query).bind(db);
+const client = require("../../db");
 
 exports.index = (req, res) => {
   res.status(200).json({ decoded: req.user });
@@ -11,25 +8,17 @@ exports.index = (req, res) => {
 exports.addWord = async (req, res) => {
   const { userId } = req.user;
   const { type } = req.query;
+
   try {
-    await query(
-      `UPDATE user 
-      SET ${type} = IF(
-        ${type} IS NULL OR
-        JSON_TYPE(${type}) != 'ARRAY',
-        JSON_ARRAY(),
-        ${type}
-      ),
-      ${type} = JSON_ARRAY_APPEND(
-        ${type},
-        '$',
-        CAST(? AS JSON)
-      )
-      WHERE id = ?`,
+    await client.query(
+      `UPDATE "user"
+      SET ${type} = ${type} || $1::jsonb
+      WHERE id = $2`,
       [JSON.stringify(req.body), userId]
     );
     return res.status(200).send("Add successful");
-  } catch (err) {
+  } catch (error) {
+    console.log(error);
     return res.status(400).send("Error when add word");
   }
 };
@@ -37,42 +26,47 @@ exports.addWord = async (req, res) => {
 exports.removeFromListWord = async (req, res) => {
   const { userId } = req.user;
   const { type, idx } = req.query;
-  console.log(idx);
-  try {
-    const data = await query(`SELECT ${type} FROM user WHERE id = ?`, [userId]);
 
-    const listWord =
-      type === "unknown"
-        ? JSON.parse(data[0].unknown)
-        : JSON.parse(data[0].known);
-    console.log(listWord);
+  try {
+    const data = await client.query(
+      `SELECT ${type} FROM "user" WHERE id = $1`,
+      [userId]
+    );
+
+    const listWord = data.rows[0][type];
     const index = listWord.findIndex(
       (e) => e.idx.toString() === idx.toString()
     );
-    await query(
-      `UPDATE user SET ${type} = JSON_REMOVE(${type}, '$[?]') WHERE id = ?`,
-      [index, userId]
+
+    await client.query(
+      `UPDATE "user"
+      SET ${type} = ${type}::jsonb - ${index}
+      WHERE id = $1`,
+      [userId]
     );
 
     return res.status(200).send("Remove successful");
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.log(error);
     return res.status(400).send("Error when remove word from list word");
   }
 };
 
 exports.getListWord = async (req, res) => {
   const { userId } = req.user;
-  console.log(userId);
+
   try {
-    dataUnknown = await query("SELECT unknown FROM user WHERE id = ?", [
-      userId,
-    ]);
-    dataKnown = await query("SELECT known FROM user WHERE id = ?", [userId]);
-    console.log(dataUnknown);
+    const dataUnknown = await client.query(
+      `SELECT unknown FROM "user" WHERE id = $1`,
+      [userId]
+    );
+    const dataKnown = await client.query(
+      `SELECT known FROM "user" WHERE id = $1`,
+      [userId]
+    );
     return res.status(200).json({
-      unknown: JSON.parse(dataUnknown[0].unknown),
-      known: JSON.parse(dataKnown[0].known),
+      unknown: dataUnknown.rows[0].unknown,
+      known: dataKnown.rows[0].known,
     });
   } catch (err) {
     return res.status(400).send("Error when get list word");
